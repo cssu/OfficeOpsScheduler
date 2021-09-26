@@ -27,10 +27,6 @@ with open(input_filename, newline='') as file:
                 if p not in availability:
                     availability[p] = set()
 
-                    # sort by closest to centre-of-gravity time
-                    time_prefs[p] = lambda t: (abs(centre[1] - t[1]),
-                                               abs(centre[0] - t[0]))
-
                 availability[p].add((j - 1, i - 1))
 
 # sort by least available first
@@ -38,18 +34,11 @@ people_sorting = lambda p: (len(availability[p]), float("inf")
                             if p not in required else -required[p])
 
 # centres-of-gravity
+from example import get_preferences, get_required
+
 centre = ((len(content[0]) - header[0]), (len(content) - header[1]) // 2)
-
-# centre around day=1, time=2
-time_prefs["A"] = lambda t: (abs(1 - t[0]), abs(2 - t[1]))
-
-# day doesn't matter/time doesn't matter
-time_prefs["B"] = lambda t: (float("inf"), abs(centre[0] - t[0]))
-time_prefs["C"] = lambda t: (abs(centre[1] - t[1]), float("inf"))
-
-# require two slots per person, including custom slots for "A"
-required = dict([(p, 2) for p in availability])
-required["A"] = 3
+time_prefs = get_preferences(centre)
+required = get_required(availability)
 
 for time in range(header[1], header[1] + i):
     for day in range(header[0], header[0] + j):
@@ -57,7 +46,6 @@ for time in range(header[1], header[1] + i):
 
 
 def assign(assigned, required):
-
     if len(required) == 0:
         return assigned
 
@@ -66,8 +54,10 @@ def assign(assigned, required):
             continue
 
         assigned_copy, required_copy = deepcopy(assigned), deepcopy(required)
+        pref_key = "" if p not in time_prefs else p
         viable = False
-        for (day, time) in sorted(availability[p], key=time_prefs[p]):
+
+        for (day, time) in sorted(availability[p], key=time_prefs[pref_key]):
             if assigned_copy[time + header[1]][day + header[0]] == "":
                 assigned_copy[time + header[1]][day + header[0]] = p
                 viable = True
