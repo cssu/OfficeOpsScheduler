@@ -2,9 +2,11 @@ from csv import reader
 from sys import argv
 from copy import deepcopy
 
-availability = {}
+# describe how many header rows/columns in the CSV
+header = (1, 1)
 content = []
 
+availability, time_prefs = {}, {}
 input_filename = argv[1]
 with open(input_filename, newline='') as file:
     buffer = reader(file, delimiter=',')
@@ -24,28 +26,30 @@ with open(input_filename, newline='') as file:
 
                 if p not in availability:
                     availability[p] = set()
+
+                    # sort by closest to centre-of-gravity time
+                    time_prefs[p] = lambda t: (abs(centre[1] - t[1]),
+                                               abs(centre[0] - t[0]))
+
                 availability[p].add((j - 1, i - 1))
-
-### USER HPARAMS
-
-# describe how many header rows/columns in the CSV
-header = (1, 1)
 
 # sort by least available first
 people_sorting = lambda p: (len(availability[p]), float("inf")
                             if p not in required else -required[p])
 
-# sort by latest times first
+# centres-of-gravity
 centre = ((len(content[0]) - header[0]), (len(content) - header[1]) // 2)
-time_sorting = lambda t: (abs(centre[1] - t[1]), abs(centre[0] - t[0]))
 
-# require two slots per person
+# centre around day=1, time=2
+time_prefs["A"] = lambda t: (abs(1 - t[0]), abs(2 - t[1]))
+
+# day doesn't matter/time doesn't matter
+time_prefs["B"] = lambda t: (float("inf"), abs(centre[0] - t[0]))
+time_prefs["C"] = lambda t: (abs(centre[1] - t[1]), float("inf"))
+
+# require two slots per person, including custom slots for "A"
 required = dict([(p, 2) for p in availability])
-
-# custom required slots for "A"
-required["Jason"] = 3
-
-### END HPARAMS
+required["A"] = 3
 
 for time in range(header[1], header[1] + i):
     for day in range(header[0], header[0] + j):
@@ -57,26 +61,25 @@ def assign(assigned, required):
     if len(required) == 0:
         return assigned
 
-    for person in sorted(list(availability), key=people_sorting):
-
-        if person not in required:
+    for p in sorted(list(availability), key=people_sorting):
+        if p not in required:
             continue
 
         assigned_copy, required_copy = deepcopy(assigned), deepcopy(required)
         viable = False
-        for (day, time) in sorted(availability[person], key=time_sorting):
+        for (day, time) in sorted(availability[p], key=time_prefs[p]):
             if assigned_copy[time + header[1]][day + header[0]] == "":
-                assigned_copy[time + header[1]][day + header[0]] = person
+                assigned_copy[time + header[1]][day + header[0]] = p
                 viable = True
                 break
 
         if not viable:
             return None
 
-        if required_copy[person] <= 1:
-            del required_copy[person]
+        if required_copy[p] <= 1:
+            del required_copy[p]
         else:
-            required_copy[person] -= 1
+            required_copy[p] -= 1
 
         result = assign(deepcopy(assigned_copy), deepcopy(required_copy))
         if result is not None:

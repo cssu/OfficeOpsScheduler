@@ -18,25 +18,23 @@ Scheduling script for CSSU lounge (BA2250) office operations, by solving a Const
 2. Check/edit hyperparameters.
 
    ```py
-   ### USER HPARAMS
-
    # sort by least available first
    people_sorting = lambda p: (len(availability[p]), float("inf")
                               if p not in required else -required[p])
 
-   # sort by latest times first
-   time_sorting = lambda t: -t[1]
+   # centres-of-gravity
+   centre = ((len(content[0]) - header[0]), (len(content) - header[1]) // 2)
 
-   # require two slots per person
+   # centre around day=1, time=2
+   time_prefs["A"] = lambda t: (abs(1 - t[0]), abs(2 - t[1]))
+
+   # day doesn't matter/time doesn't matter
+   time_prefs["B"] = lambda t: (float("inf"), abs(centre[0] - t[0]))
+   time_prefs["C"] = lambda t: (abs(centre[1] - t[1]), float("inf"))
+
+   # require two slots per person, including custom slots for "A"
    required = dict([(p, 2) for p in availability])
-
-   # custom required slot for "A"
    required["A"] = 3
-
-   # describe how many header rows/columns in the CSV
-   header = (1, 1)
-
-   ### END HPARAMS
    ```
 
 3. Run the script to produce `<output>.md`.
