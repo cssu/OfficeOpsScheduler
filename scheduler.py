@@ -28,21 +28,22 @@ with open(input_filename, newline='') as file:
 
 ### USER HPARAMS
 
+# describe how many header rows/columns in the CSV
+header = (1, 1)
+
 # sort by least available first
 people_sorting = lambda p: (len(availability[p]), float("inf")
                             if p not in required else -required[p])
 
 # sort by latest times first
-time_sorting = lambda t: -t[1]
+centre = ((len(content[0]) - header[0]), (len(content) - header[1]) // 2)
+time_sorting = lambda t: (abs(centre[1] - t[1]), abs(centre[0] - t[0]))
 
 # require two slots per person
 required = dict([(p, 2) for p in availability])
 
 # custom required slots for "A"
-required["A"] = 3
-
-# describe how many header rows/columns in the CSV
-header = (1, 1)
+required["Jason"] = 3
 
 ### END HPARAMS
 
